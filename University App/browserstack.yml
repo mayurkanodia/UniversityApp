@@ -1,0 +1,14 @@
+userName: mayurkanodia_J5PIkY
+accessKey: 3YCWAu7dfPeqsz2QUDJy
+
+framework: espresso
+
+app: app/build/outputs/apk/debug/app-debug.apk
+
+testSuite: app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+
+devices:
+  - Google Pixel 9-16.0
+
+projectName: FoodFlow
+buildName: Compose UI Tests
