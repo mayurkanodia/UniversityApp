@@ -35,6 +35,7 @@ import com.mayur.core.base.UiEvent
 import com.mayur.core.base.navigation.LocalNavController
 import com.mayur.feature.detail.presentation.DetailActivity
 import com.mayur.feature.home.domain.model.University
+import com.mayur.feature.home.presentation.state.HomeIntent
 import com.mayur.feature.home.presentation.viewmodel.HomeViewModel
 
 @Composable
@@ -73,12 +74,15 @@ fun HomeScreen(
                 ) ?: false
 
             if (refresh) {
-                viewModel.refresh()
+                //viewModel.refresh()
+                viewModel.onIntent(
+                    HomeIntent.Refresh
+                )
             }
         }
 
-
     LaunchedEffect(Unit) {
+        viewModel.onIntent(HomeIntent.Load)
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is UiEvent.ShowToast -> {
@@ -129,7 +133,11 @@ fun HomeScreen(
                 }
 
                 uiState.error != null -> {
-                    ErrorView(uiState.error!!, { viewModel.refresh() })
+                    ErrorView(uiState.error!!) {
+                        viewModel.onIntent(
+                            HomeIntent.Refresh
+                        )/* viewModel.refresh() */
+                    }
                 }
 
                 uiState.universities.isEmpty() -> {
@@ -139,7 +147,11 @@ fun HomeScreen(
                 else -> {
                     UniversityListView(
                         uiState.universities
-                    ) { viewModel.onItemClick(it.name, it.country) }
+                    ) {
+                        //viewModel.onItemClick(it.name, it.country)
+                        viewModel.onIntent(
+                            HomeIntent.ItemClicked(it)
+                        )}
                 }
             }
         }

@@ -1,13 +1,12 @@
 package com.mayur.feature.home.presentation.viewmodel
 
-import android.content.ContentValues.TAG
-import android.util.Log
 import com.mayur.core.base.BaseViewModel
 import com.mayur.core.base.UiEvent
 import com.mayur.core.base.navigation.AppRoutes
 import com.mayur.core.common.dispatcher.DispatcherProvider
 import com.mayur.feature.home.domain.usecase.GetUniversityUseCase
 import com.mayur.feature.home.domain.usecase.RefreshUniversityUseCase
+import com.mayur.feature.home.presentation.state.HomeIntent
 import com.mayur.feature.home.presentation.state.HomeUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -27,37 +26,29 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    init {
-        observeUniversities()
-        refresh()
-    }
-
     private fun observeUniversities() {
         launchObserver {
             getUniversityUseCase()
                 .distinctUntilChanged()
                 .collect { universities ->
-                _uiState.update {
-                    it.copy(
-                        universities = universities
-                    )
+                    reduce {
+                        copy(
+                            universities = universities
+                        )
+                    }
                 }
-            }
         }
     }
 
-     fun refresh() {
+    private fun refresh() {
         if (uiState.value.isLoading) return
         launchNetworkCall(
             apiCall = {
                 refreshUniversityUseCase()
             },
             onSuccess = {
-               /* showSnackbar(
-                    "Data synced successfully"
-                )*/
-                _uiState.update {
-                    it.copy(
+                reduce {
+                    copy(
                         error = null
                     )
                 }
@@ -68,40 +59,52 @@ class HomeViewModel @Inject constructor(
     public override fun onLoading(
         isLoading: Boolean
     ) {
-        _uiState.update {
-            it.copy(
+        reduce {
+            copy(
                 isLoading = isLoading
             )
         }
-
     }
 
     public override fun onError(
         message: String
     ) {
-        _uiState.update {
-            it.copy(
+        reduce {
+            copy(
                 error = message
             )
         }
     }
 
-    fun onItemClick(
-        name: String,
-        country: String
-    ) {
-        sendEvent(
-            UiEvent.ShowProductDialog(
-                name = name,
-                country = country
+    fun onIntent(intent: HomeIntent) {
+        when (intent) {
+            HomeIntent.Load -> {
+                observeUniversities()
+                refresh()
+            }
+
+            HomeIntent.Refresh -> refresh()
+
+            is HomeIntent.ItemClicked -> sendEvent(
+                UiEvent.ShowProductDialog(
+                    name = intent.university.name,
+                    country = intent.university.country
+                )
             )
-        )
+
+            is HomeIntent.OpenDetail -> navigate(
+                "${AppRoutes.DETAIL}/${intent.university.name}"
+            )
+
+            HomeIntent.Retry -> refresh()
+        }
     }
 
-    fun openProductDetail(universityName: String
+    private fun reduce(
+        reducer: HomeUiState.() -> HomeUiState
     ) {
-        navigate(
-            "${AppRoutes.DETAIL}/$universityName"
-        )
+        _uiState.update {
+            it.reducer()
+        }
     }
 }
